@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="exclusions.dic" />
+    <File Path="global.json" />
+    <File Path="NuGet.config" />
+    <File Path="Settings.XamlStyler" />
+  </Folder>
+  <Folder Name="/Solution Items/.github/">
+    <File Path=".github/dependabot.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/.github/workflows/">
+    <File Path=".github/workflows/build_app.yml" />
+    <File Path=".github/workflows/code_coverage_comment.yml" />
+  </Folder>
+  <Project Path="Keboo.VocalSlide/Keboo.VocalSlide.csproj" />
+  <Project Path="Keboo.VocalSlide.Tests/Keboo.VocalSlide.Tests.csproj" />
+</Solution>

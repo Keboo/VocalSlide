@@ -1,0 +1,93 @@
+name: Build Keboo.VocalSlide
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: pwsh
+    
+env:
+  version: "1.0.${{ github.run_number }}"
+  
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: dotnet build
+        run: dotnet build --configuration Release -p:Version="${{ env.version }}"
+
+      # Microsoft Testing Platform can stop the run once 10 tests fail in CI:
+      # https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-cli-options
+      # To enable retries, add Microsoft.Testing.Extensions.Retry to the test project, then pass
+      # --retry-failed-tests plus --retry-failed-tests-max-percentage <value> to skip reruns when too many tests fail:
+      # https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-retry#retry-1
+      - name: dotnet test
+        run: dotnet test --configuration Release --no-build --maximum-failed-tests 10 -- --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
+        
+      - name: ReportGenerator
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.5.4
+        with:
+          reports: '**/TestResults/coverage.cobertura.xml'
+          targetdir: ${{github.workspace}}/.build/coveragereport/
+          reporttypes: Html;MarkdownSummaryGithub
+          title: 'Code Coverage'
+
+      - name: Write PR Number
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          New-Item -Type File -Value "${{ github.event.number }}" -Force -Path "${{github.workspace}}/.build/coveragereport/PullRequestNumber"
+
+      - name: Upload Code Coverage Report
+        uses: actions/upload-artifact@v7
+        with:
+          name: CodeCoverage
+          path: ${{github.workspace}}/.build/coveragereport/
+          if-no-files-found: error
+        
+      - name: dotnet publish
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          # If publishing single file, remove the --no-build below
+          dotnet publish --configuration Release --no-build -p:Version="${{ env.version }}" -p:PublishDir=${{github.workspace}}/.build/publish
+
+      - name: Upload artifact for deployment job
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: app
+          path: ${{github.workspace}}/.build/publish
+
+  # This will automatically mark PRs from dependabot with auto merge.
+  # This allows them to automatically complete if they pass the rest of the CI
+  auto-merge:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      - uses: fastify/github-action-merge-dependabot@v3.12.0
+        with:
+          # For GitHub Auto Merge to work it must be enabled on the repo.
+          # This can be done with the script here:
+          # https://github.com/Keboo/DotnetTemplates/blob/main/SetupRepo.ps1
+          # See documentation here:
+          # https://docs.github.com/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request
+          use-github-auto-merge: true
