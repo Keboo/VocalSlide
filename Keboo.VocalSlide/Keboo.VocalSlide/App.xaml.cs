@@ -1,5 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
-using MaterialDesignThemes.Wpf;
+﻿using Keboo.VocalSlide.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -8,49 +7,60 @@ using System.Windows.Threading;
 
 namespace Keboo.VocalSlide;
 
-/// <summary>
-/// Interaction logic for App.xaml
-/// </summary>
 public partial class App : Application
 {
+    private readonly IHost _host;
+
+    public App()
+    {
+        _host = CreateHostBuilder(Array.Empty<string>()).Build();
+    }
+
     [STAThread]
     private static void Main(string[] args)
     {
-        MainAsync(args).GetAwaiter().GetResult();
-    }
-
-    private static async Task MainAsync(string[] args)
-    {
-        using IHost host = CreateHostBuilder(args).Build();
-        await host.StartAsync().ConfigureAwait(true);
-
         App app = new();
         app.InitializeComponent();
-        app.MainWindow = host.Services.GetRequiredService<MainWindow>();
-        app.MainWindow.Visibility = Visibility.Visible;
         app.Run();
-
-        await host.StopAsync().ConfigureAwait(true);
     }
 
-    public static IHostBuilder CreateHostBuilder(string[] args) =>
-        Host.CreateDefaultBuilder(args)
-        .ConfigureAppConfiguration((hostBuilderContext, configurationBuilder)
-            => configurationBuilder.AddUserSecrets(typeof(App).Assembly))
-        .ConfigureServices((hostContext, services) =>
-        {
-            services.AddSingleton<MainWindow>();
-            services.AddSingleton<MainWindowViewModel>();
+    protected override async void OnStartup(StartupEventArgs e)
+    {
+        await _host.StartAsync().ConfigureAwait(true);
 
-            services.AddSingleton<WeakReferenceMessenger>();
-            services.AddSingleton<IMessenger, WeakReferenceMessenger>(provider => provider.GetRequiredService<WeakReferenceMessenger>());
+        MainWindow = _host.Services.GetRequiredService<MainWindow>();
+        MainWindow.Show();
 
-            services.AddSingleton(_ => Current.Dispatcher);
+        base.OnStartup(e);
+    }
 
-            services.AddTransient<ISnackbarMessageQueue>(provider =>
+    protected override async void OnExit(ExitEventArgs e)
+    {
+        await _host.StopAsync().ConfigureAwait(true);
+        _host.Dispose();
+        base.OnExit(e);
+    }
+
+    public static IHostBuilder CreateHostBuilder(string[] args)
+    {
+        Dispatcher uiDispatcher = Dispatcher.CurrentDispatcher;
+
+        return Host.CreateDefaultBuilder(args)
+            .ConfigureAppConfiguration((_, configurationBuilder)
+                => configurationBuilder.AddUserSecrets(typeof(App).Assembly))
+            .ConfigureServices((_, services) =>
             {
-                Dispatcher dispatcher = provider.GetRequiredService<Dispatcher>();
-                return new SnackbarMessageQueue(TimeSpan.FromSeconds(3.0), dispatcher);
+                services.AddSingleton(uiDispatcher);
+
+                services.AddSingleton<MainWindow>();
+                services.AddSingleton<MainWindowViewModel>();
+
+                services.AddSingleton<IPresenterNotesParser, PresenterNotesParser>();
+                services.AddSingleton<IPowerPointSessionService, PowerPointSessionService>();
+                services.AddSingleton<ILocalTranscriptionService, WhisperTranscriptionService>();
+                services.AddSingleton<ILocalSlideEvaluationService, LlamaSlideEvaluationService>();
+                services.AddSingleton<IModelDownloadService, ModelDownloadService>();
+                services.AddSingleton<AutoAdvancePolicy>();
             });
-        });
+    }
 }

@@ -12,6 +12,7 @@ on:
 defaults:
   run:
     shell: pwsh
+    working-directory: Keboo.VocalSlide
     
 env:
   version: "1.0.${{ github.run_number }}"
@@ -26,7 +27,7 @@ jobs:
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v5
         with:
-          global-json-file: global.json
+          global-json-file: Keboo.VocalSlide/global.json
 
       - name: dotnet build
         run: dotnet build --configuration Release -p:Version="${{ env.version }}"
@@ -37,7 +38,7 @@ jobs:
       # --retry-failed-tests plus --retry-failed-tests-max-percentage <value> to skip reruns when too many tests fail:
       # https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-retry#retry-1
       - name: dotnet test
-        run: dotnet test --configuration Release --no-build --maximum-failed-tests 10 -- --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
+        run: dotnet test --solution .\Keboo.VocalSlide.slnx --configuration Release --no-build --maximum-failed-tests 10 --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
         
       - name: ReportGenerator
         uses: danielpalme/ReportGenerator-GitHub-Action@5.5.4
