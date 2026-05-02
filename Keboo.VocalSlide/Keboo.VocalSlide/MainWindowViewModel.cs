@@ -146,16 +146,27 @@ public partial class MainWindowViewModel : ObservableObject
     private int _llmGpuLayerCount;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPaused))]
+    [NotifyCanExecuteChangedFor(nameof(PauseCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResumeCommand))]
     private bool _isPowerPointConnected;
 
     [ObservableProperty]
     private bool _isSlideShowRunning;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPaused))]
+    [NotifyCanExecuteChangedFor(nameof(PauseCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResumeCommand))]
     private bool _isAutomationRunning;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPaused))]
+    [NotifyCanExecuteChangedFor(nameof(PauseCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResumeCommand))]
     private bool _isAutoAdvanceEnabled = true;
+
+    public bool IsPaused => IsAutomationRunning && !IsAutoAdvanceEnabled;
 
     [ObservableProperty]
     private int _currentSlideNumber;
@@ -228,6 +239,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     partial void OnIsAutoAdvanceEnabledChanged(bool value)
     {
+        UpdateCommandStates();
         StatusMessage = value
             ? "Auto-advance is enabled."
             : "Auto-advance is paused. Transcription will continue until you stop listening.";
@@ -416,7 +428,40 @@ public partial class MainWindowViewModel : ObservableObject
         await _transcriptionService.StopAsync().ConfigureAwait(true);
 
         IsAutomationRunning = false;
+        IsAutoAdvanceEnabled = true;
         StatusMessage = "Automation stopped.";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanPause))]
+    private void Pause()
+    {
+        IsAutoAdvanceEnabled = false;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanResume))]
+    private void Resume()
+    {
+        IsAutoAdvanceEnabled = true;
+    }
+
+    public Func<string, Task>? RequestOpenDialog { get; set; }
+
+    [RelayCommand]
+    private async Task OpenSettingsDialogAsync()
+    {
+        if (RequestOpenDialog is not null)
+        {
+            await RequestOpenDialog("settings").ConfigureAwait(true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenSlidesDialogAsync()
+    {
+        if (RequestOpenDialog is not null)
+        {
+            await RequestOpenDialog("slides").ConfigureAwait(true);
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanAdvanceSlide))]
@@ -472,6 +517,10 @@ public partial class MainWindowViewModel : ObservableObject
     private bool CanStartAutomation() => !IsAutomationRunning;
 
     private bool CanStopAutomation() => IsAutomationRunning;
+
+    private bool CanPause() => IsAutomationRunning && IsAutoAdvanceEnabled;
+
+    private bool CanResume() => IsAutomationRunning && !IsAutoAdvanceEnabled;
 
     private bool CanAdvanceSlide() =>
         IsPowerPointConnected &&
@@ -790,6 +839,8 @@ public partial class MainWindowViewModel : ObservableObject
         DownloadLlmModelCommand.NotifyCanExecuteChanged();
         StartAutomationCommand.NotifyCanExecuteChanged();
         StopAutomationCommand.NotifyCanExecuteChanged();
+        PauseCommand.NotifyCanExecuteChanged();
+        ResumeCommand.NotifyCanExecuteChanged();
         PreviousSlideCommand.NotifyCanExecuteChanged();
         AdvanceSlideCommand.NotifyCanExecuteChanged();
         GoToSelectedSlideCommand.NotifyCanExecuteChanged();

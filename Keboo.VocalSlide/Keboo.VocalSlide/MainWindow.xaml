@@ -4,285 +4,241 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Keboo.VocalSlide"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=local:MainWindowViewModel, IsDesignTimeCreatable=False}"
         Style="{StaticResource MaterialDesignWindow}"
-        Title="VocalSlide PowerPoint Auto Advance"
-        Height="900"
-        Width="1440"
-        MinWidth="1200"
-        MinHeight="780">
-  <Grid Margin="16">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="*" />
-      <RowDefinition Height="220" />
-    </Grid.RowDefinitions>
-    <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="420" />
-      <ColumnDefinition Width="12" />
-      <ColumnDefinition Width="*" />
-    </Grid.ColumnDefinitions>
+        Title="VocalSlide"
+        Height="680"
+        Width="900"
+        MinWidth="640"
+        MinHeight="480">
 
-    <Border Grid.Row="0"
-            Grid.ColumnSpan="3"
-            Padding="16"
-            Margin="0,0,0,16"
-            Background="{DynamicResource MaterialDesignPaper}">
-      <DockPanel LastChildFill="True">
-        <WrapPanel DockPanel.Dock="Left"
-                   VerticalAlignment="Center">
-          <Button Content="Refresh PowerPoint"
-                  Command="{Binding RefreshPowerPointCommand}"
-                  Margin="0,0,8,0" />
-          <Button Content="Start Listening"
-                  Command="{Binding StartAutomationCommand}"
-                  Margin="0,0,8,0" />
-          <Button Content="Stop Listening"
-                  Command="{Binding StopAutomationCommand}"
-                  Margin="0,0,8,0" />
-          <Button Content="Previous Slide"
-                  Command="{Binding PreviousSlideCommand}"
-                  Margin="0,0,8,0" />
-          <Button Content="Next Slide"
-                  Command="{Binding AdvanceSlideCommand}"
-                  Margin="0,0,8,0" />
-          <Button Content="Go To Selected Slide"
-                  Command="{Binding GoToSelectedSlideCommand}"
-                  Margin="0,0,8,0" />
-          <Button Content="Clear Transcript"
-                  Command="{Binding ClearTranscriptCommand}"
-                  Margin="0,0,16,0" />
-          <CheckBox Content="Auto-advance enabled"
-                    IsChecked="{Binding IsAutoAdvanceEnabled, Mode=TwoWay}"
-                    VerticalAlignment="Center" />
-        </WrapPanel>
+  <materialDesign:DialogHost Identifier="RootDialog">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="220" />
+      </Grid.RowDefinitions>
 
-        <TextBlock Text="{Binding StatusMessage}"
-                   TextWrapping="Wrap"
-                   VerticalAlignment="Center" />
-      </DockPanel>
-    </Border>
+      <!-- Header bar -->
+      <materialDesign:ColorZone Grid.Row="0"
+                                Mode="PrimaryMid"
+                                Padding="16,10">
+        <DockPanel>
+          <Button DockPanel.Dock="Right"
+                  Style="{StaticResource MaterialDesignIconForegroundButton}"
+                  Command="{Binding OpenSettingsDialogCommand}"
+                  ToolTip="Settings">
+            <materialDesign:PackIcon Kind="Cog"
+                                     Width="22"
+                                     Height="22" />
+          </Button>
+          <TextBlock Text="VocalSlide — PowerPoint Auto Advance"
+                     VerticalAlignment="Center"
+                     Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                     Foreground="White" />
+        </DockPanel>
+      </materialDesign:ColorZone>
 
-    <GroupBox Grid.Row="1"
-              Grid.Column="0"
-              Header="Local models and session settings"
-              Margin="0,0,0,16">
-      <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="12">
-          <TextBlock FontWeight="SemiBold"
-                     Text="Model storage folder" />
-          <TextBlock Margin="0,4,0,8"
-                     Text="Downloaded model files are stored in %LOCALAPPDATA%\Keboo.VocalSlide."
-                     TextWrapping="Wrap" />
-          <DockPanel Margin="0,0,0,12">
-            <Button DockPanel.Dock="Right"
-                    Content="Open Folder"
-                    Command="{Binding OpenModelFolderCommand}"
-                    Margin="8,0,0,0" />
-            <TextBox Text="{Binding ModelStorageDirectory}"
-                     IsReadOnly="True" />
-          </DockPanel>
+      <!-- Main area: Start / Stop / Pause / Resume -->
+      <Grid Grid.Row="1">
+        <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Width="360">
 
-          <TextBlock FontWeight="SemiBold"
-                     Text="Whisper download" />
-          <ComboBox Margin="0,4,0,4"
-                    ItemsSource="{Binding WhisperDownloadOptions}"
-                    SelectedItem="{Binding SelectedWhisperDownloadOption}"
-                    DisplayMemberPath="DisplayName" />
-          <DockPanel Margin="0,0,0,4">
-            <Button DockPanel.Dock="Right"
-                    Content="Download Whisper"
-                    Command="{Binding DownloadWhisperModelCommand}"
-                    Margin="8,0,0,0" />
-            <TextBox Text="{Binding WhisperModelPath, UpdateSourceTrigger=PropertyChanged}" />
-          </DockPanel>
-          <TextBlock Text="{Binding WhisperDownloadStatus}"
-                     TextWrapping="Wrap" />
-          <ProgressBar Height="8"
-                       Minimum="0"
-                       Maximum="100"
-                       Value="{Binding WhisperDownloadPercent}"
-                       Margin="0,4,0,12" />
-
-          <TextBlock FontWeight="SemiBold"
-                     Text="LLM GGUF download" />
-          <TextBox Margin="0,4,0,4"
-                   Text="{Binding LlmDownloadUrl, UpdateSourceTrigger=PropertyChanged}" />
-          <DockPanel Margin="0,0,0,4">
-            <Button DockPanel.Dock="Right"
-                    Content="Download GGUF"
-                    Command="{Binding DownloadLlmModelCommand}"
-                    Margin="8,0,0,0" />
-            <TextBox Text="{Binding LlmModelPath, UpdateSourceTrigger=PropertyChanged}" />
-          </DockPanel>
-          <TextBlock Text="{Binding LlmDownloadStatus}"
-                     TextWrapping="Wrap" />
-          <ProgressBar Height="8"
-                       Minimum="0"
-                       Maximum="100"
-                       Value="{Binding LlmDownloadPercent}"
-                       Margin="0,4,0,12" />
-
-          <Separator Margin="0,0,0,12" />
-
-          <TextBlock FontWeight="SemiBold"
-                     Text="Inference settings" />
-
-          <TextBlock Margin="0,8,0,0"
-                     Text="Transcript language" />
-          <TextBox Margin="0,4,0,8"
-                   Text="{Binding TranscriptionLanguage, UpdateSourceTrigger=PropertyChanged}" />
-
-          <TextBlock Text="Indexed prompt slides" />
-          <TextBox Margin="0,4,0,8"
-                   Text="{Binding IndexedPromptSlideCount}"
-                   IsReadOnly="True" />
-
-          <TextBlock Text="Confidence threshold" />
-          <TextBox Margin="0,4,0,8"
-                   Text="{Binding ConfidenceThreshold, UpdateSourceTrigger=PropertyChanged}" />
-
-          <TextBlock Text="Cooldown seconds" />
-          <TextBox Margin="0,4,0,8"
-                   Text="{Binding DecisionCooldownSeconds, UpdateSourceTrigger=PropertyChanged}" />
-
-          <UniformGrid Columns="2">
-            <StackPanel Margin="0,0,8,0">
-              <TextBlock Text="LLM context size" />
-              <TextBox Margin="0,4,0,0"
-                       Text="{Binding LlmContextSize, UpdateSourceTrigger=PropertyChanged}" />
+          <!-- START panel (visible when not running) -->
+          <Button Command="{Binding StartAutomationCommand}"
+                  Visibility="{Binding IsAutomationRunning, Converter={StaticResource InvBoolToVis}}"
+                  Height="76"
+                  Style="{StaticResource MaterialDesignRaisedButton}"
+                  HorizontalAlignment="Stretch">
+            <StackPanel Orientation="Horizontal">
+              <materialDesign:PackIcon Kind="Play"
+                                       Width="30"
+                                       Height="30"
+                                       VerticalAlignment="Center" />
+              <TextBlock Text="START"
+                         VerticalAlignment="Center"
+                         Margin="12,0,0,0"
+                         FontSize="20"
+                         FontWeight="Bold" />
             </StackPanel>
+          </Button>
 
-            <StackPanel Margin="8,0,0,0">
-              <TextBlock Text="GPU layers" />
-              <TextBox Margin="0,4,0,0"
-                       Text="{Binding LlmGpuLayerCount, UpdateSourceTrigger=PropertyChanged}" />
-            </StackPanel>
-          </UniformGrid>
-        </StackPanel>
-      </ScrollViewer>
-    </GroupBox>
+          <!-- STOP / PAUSE / RESUME panel (visible when running) -->
+          <Grid Visibility="{Binding IsAutomationRunning, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="8" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-    <GroupBox Grid.Row="1"
-              Grid.Column="2"
-              Header="Presentation status"
-              Margin="0,0,0,16">
-      <Grid Margin="12">
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="16" />
-          <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+            <Button Grid.Column="0"
+                    Command="{Binding StopAutomationCommand}"
+                    Height="68"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Background="{DynamicResource MaterialDesignValidationErrorColor}"
+                    BorderBrush="{DynamicResource MaterialDesignValidationErrorColor}"
+                    Foreground="White">
+              <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="Stop"
+                                         Width="24"
+                                         Height="24"
+                                         VerticalAlignment="Center" />
+                <TextBlock Text="STOP"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"
+                           FontSize="16"
+                           FontWeight="SemiBold" />
+              </StackPanel>
+            </Button>
 
-        <TextBlock Grid.Row="0"
-                   Grid.Column="0"
-                   FontWeight="SemiBold"
-                   Text="Presentation" />
-        <TextBlock Grid.Row="0"
-                   Grid.Column="2"
-                   Text="{Binding PresentationName}" />
+            <!-- PAUSE button (visible when not paused) -->
+            <Button Grid.Column="2"
+                    Command="{Binding PauseCommand}"
+                    Visibility="{Binding IsPaused, Converter={StaticResource InvBoolToVis}}"
+                    Height="68"
+                    Style="{StaticResource MaterialDesignRaisedButton}">
+              <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="Pause"
+                                         Width="24"
+                                         Height="24"
+                                         VerticalAlignment="Center" />
+                <TextBlock Text="PAUSE"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"
+                           FontSize="16"
+                           FontWeight="SemiBold" />
+              </StackPanel>
+            </Button>
 
-        <TextBlock Grid.Row="1"
-                   Grid.Column="0"
-                   FontWeight="SemiBold"
-                   Text="Connection" />
-        <TextBlock Grid.Row="1"
-                   Grid.Column="2"
-                   Text="{Binding ConnectionSummary}"
-                   TextWrapping="Wrap" />
+            <!-- RESUME button (visible when paused) -->
+            <Button Grid.Column="2"
+                    Command="{Binding ResumeCommand}"
+                    Visibility="{Binding IsPaused, Converter={StaticResource BoolToVis}}"
+                    Height="68"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Background="{DynamicResource MaterialDesignLightForegroundBrush}">
+              <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="PlayCircle"
+                                         Width="24"
+                                         Height="24"
+                                         VerticalAlignment="Center" />
+                <TextBlock Text="RESUME"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"
+                           FontSize="16"
+                           FontWeight="SemiBold" />
+              </StackPanel>
+            </Button>
+          </Grid>
 
-        <TextBlock Grid.Row="2"
-                   Grid.Column="0"
-                   FontWeight="SemiBold"
-                   Text="Slide show" />
-        <TextBlock Grid.Row="2"
-                   Grid.Column="2"
-                   Text="{Binding SlideShowStateText}" />
-
-        <TextBlock Grid.Row="3"
-                   Grid.Column="0"
-                   FontWeight="SemiBold"
-                   Text="Current slide" />
-        <StackPanel Grid.Row="3"
-                    Grid.Column="2">
-          <TextBlock Text="{Binding CurrentSlideTitle}"
-                     FontWeight="SemiBold" />
-          <TextBlock Text="{Binding CurrentSlidePrompt}"
+          <!-- Status message -->
+          <TextBlock Text="{Binding StatusMessage}"
                      TextWrapping="Wrap"
-                     Margin="0,4,0,0" />
-        </StackPanel>
+                     TextAlignment="Center"
+                     Margin="0,20,0,0"
+                     Style="{StaticResource MaterialDesignBody2TextBlock}"
+                     Opacity="0.75" />
 
-        <TextBlock Grid.Row="4"
-                   Grid.Column="0"
-                   FontWeight="SemiBold"
-                   Text="Nearest indexed prompt" />
-        <StackPanel Grid.Row="4"
-                    Grid.Column="2">
-          <TextBlock Text="{Binding NextSlideTitle}"
-                     FontWeight="SemiBold" />
-          <TextBlock Text="{Binding NextSlidePrompt}"
-                     TextWrapping="Wrap"
-                     Margin="0,4,0,0" />
         </StackPanel>
       </Grid>
-    </GroupBox>
 
-    <GroupBox Grid.Row="2"
-              Grid.Column="0"
-              Header="Live transcript window">
-      <TextBox Margin="12"
-               Text="{Binding TranscriptWindow}"
-               TextWrapping="Wrap"
-               VerticalScrollBarVisibility="Auto"
-               IsReadOnly="True"
-               AcceptsReturn="True" />
-    </GroupBox>
+      <!-- Bottom status GroupBox -->
+      <GroupBox Grid.Row="2"
+                Header="Status"
+                Margin="12,0,12,12">
+        <Grid Margin="8,4,8,4">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"
+                              MinWidth="180" />
+            <ColumnDefinition Width="8" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="8" />
+            <ColumnDefinition Width="220" />
+          </Grid.ColumnDefinitions>
 
-    <GroupBox Grid.Row="2"
-              Grid.Column="2"
-              Grid.RowSpan="2"
-              Header="Slides and automation prompts">
-      <DataGrid Margin="12"
-                ItemsSource="{Binding Slides}"
-                SelectedItem="{Binding SelectedSlide, Mode=TwoWay}"
-                AutoGenerateColumns="False"
-                CanUserAddRows="False"
-                CanUserDeleteRows="False"
-                IsReadOnly="True"
-                SelectionMode="Single">
-        <DataGrid.Columns>
-          <DataGridTextColumn Header="#"
-                              Binding="{Binding SlideNumber}"
-                              Width="60" />
-          <DataGridTextColumn Header="Title"
-                              Binding="{Binding Title}"
-                              Width="220" />
-          <DataGridTextColumn Header="Prompt"
-                              Binding="{Binding PromptPreview}"
-                              Width="*" />
-        </DataGrid.Columns>
-      </DataGrid>
-    </GroupBox>
+          <!-- Presentation info -->
+          <DockPanel Grid.Column="0"
+                     LastChildFill="False">
+            <Button DockPanel.Dock="Bottom"
+                    Content="View Slides"
+                    Command="{Binding OpenSlidesDialogCommand}"
+                    Visibility="{Binding IsPowerPointConnected, Converter={StaticResource BoolToVis}}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Margin="0,6,0,0"
+                    HorizontalAlignment="Left" />
+            <StackPanel DockPanel.Dock="Top">
+              <TextBlock Text="{Binding PresentationName}"
+                         FontWeight="SemiBold"
+                         TextTrimming="CharacterEllipsis"
+                         ToolTip="{Binding PresentationName}" />
+              <TextBlock Text="{Binding SlideShowStateText}"
+                         TextWrapping="Wrap"
+                         Margin="0,2,0,0"
+                         Style="{StaticResource MaterialDesignCaptionTextBlock}" />
+              <TextBlock Text="{Binding CurrentSlideTitle}"
+                         TextWrapping="Wrap"
+                         Margin="0,2,0,0"
+                         Style="{StaticResource MaterialDesignCaptionTextBlock}" />
+              <TextBlock Text="{Binding NextSlideTitle}"
+                         TextWrapping="Wrap"
+                         Margin="0,2,0,0"
+                         Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                         Opacity="0.7" />
+            </StackPanel>
+          </DockPanel>
 
-    <GroupBox Grid.Row="3"
-              Grid.Column="0"
-              Header="Latest decision"
-              Margin="0,16,0,0">
-      <TextBox Margin="12"
-               Text="{Binding LastDecision}"
-               TextWrapping="Wrap"
-               VerticalScrollBarVisibility="Auto"
-               AcceptsReturn="True"
-               IsReadOnly="True" />
-    </GroupBox>
-  </Grid>
+          <!-- Live transcript -->
+          <DockPanel Grid.Column="2"
+                     LastChildFill="True">
+            <DockPanel DockPanel.Dock="Top"
+                       Margin="0,0,0,4">
+              <Button DockPanel.Dock="Right"
+                      Style="{StaticResource MaterialDesignFlatButton}"
+                      Command="{Binding ClearTranscriptCommand}"
+                      Padding="4,0"
+                      Height="22"
+                      VerticalAlignment="Center">
+                <TextBlock Text="Clear"
+                           FontSize="10" />
+              </Button>
+              <TextBlock Text="Transcript"
+                         FontWeight="SemiBold"
+                         VerticalAlignment="Center"
+                         Style="{StaticResource MaterialDesignCaptionTextBlock}" />
+            </DockPanel>
+            <TextBox Text="{Binding TranscriptWindow}"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     FontSize="11" />
+          </DockPanel>
+
+          <!-- Latest decision -->
+          <DockPanel Grid.Column="4"
+                     LastChildFill="True">
+            <TextBlock DockPanel.Dock="Top"
+                       Text="Latest Decision"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,4"
+                       Style="{StaticResource MaterialDesignCaptionTextBlock}" />
+            <TextBox Text="{Binding LastDecision}"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     FontSize="11" />
+          </DockPanel>
+
+        </Grid>
+      </GroupBox>
+
+    </Grid>
+  </materialDesign:DialogHost>
+
 </Window>
+
