@@ -2,18 +2,23 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Keboo.VocalSlide"
+             xmlns:infrastructure="clr-namespace:Keboo.VocalSlide.Infrastructure"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <materialDesign:BundledTheme BaseTheme="Inherit" 
-                                     PrimaryColor="Purple" 
+        <materialDesign:BundledTheme BaseTheme="Inherit"
+                                     PrimaryColor="Purple"
                                      SecondaryColor="LightGreen" />
 
         <ResourceDictionary
                     Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
 
       </ResourceDictionary.MergedDictionaries>
+
+      <BooleanToVisibilityConverter x:Key="BoolToVis" />
+      <infrastructure:InverseBooleanToVisibilityConverter x:Key="InvBoolToVis" />
+
     </ResourceDictionary>
   </Application.Resources>
 </Application>
