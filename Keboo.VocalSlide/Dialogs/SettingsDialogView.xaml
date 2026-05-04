@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Keboo.VocalSlide.Dialogs.SettingsDialogView"
+<UserControl x:Class="Keboo.VocalSlide.Dialogs.SettingsDialogView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -33,7 +33,7 @@
       <ScrollViewer DockPanel.Dock="Bottom"
                     VerticalScrollBarVisibility="Auto"
                     Padding="16">
-        <StackPanel>
+        <StackPanel Margin="20">
 
           <TextBlock FontWeight="SemiBold"
                      Text="Model storage folder"
