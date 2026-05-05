@@ -14,7 +14,7 @@ public sealed class AutoAdvancePolicy
     {
         if (evaluation.TargetSlideNumber is null)
         {
-            return AutoAdvanceDecisionOutcome.Skip("Held current slide. The evaluator requested a slide change without a target slide.");
+            return AutoAdvanceDecisionOutcome.Skip("Held current slide. No target slide indicated.");
         }
 
         if (!candidateSlideNumbers.Contains(evaluation.TargetSlideNumber.Value))
@@ -27,6 +27,12 @@ public sealed class AutoAdvancePolicy
             return AutoAdvanceDecisionOutcome.Skip(
                 $"Held current slide. Confidence {evaluation.Confidence:0.00} is below the threshold {confidenceThreshold:0.00}.");
         }
+
+        //if (string.IsNullOrWhiteSpace(evaluation.Reason))
+        //{
+        //    return AutoAdvanceDecisionOutcome.Skip(
+        //        $"Held current slide. Confidence {evaluation.Confidence:0.00} is above the threshold but no reason to switch was provided.");
+        //}
 
         if (lastAdvanceAt is not null && evaluationTime - lastAdvanceAt.Value < cooldown)
         {

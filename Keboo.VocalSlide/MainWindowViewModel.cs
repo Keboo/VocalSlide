@@ -141,7 +141,7 @@ public partial class MainWindowViewModel : ObservableObject
     private string _ollamaEndpoint = "http://localhost:11434";
 
     [ObservableProperty]
-    private string _ollamaModelName = "qwen2.5:0.5b";
+    private string _ollamaModelName = "qwen3:0.6b";
 
     [ObservableProperty]
     private string _transcriptionLanguage = "en";
@@ -560,7 +560,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         await _dispatcher.InvokeAsync(() => LastDecision = outcome.Summary).Task.ConfigureAwait(false);
 
-        if (!outcome.ShouldAdvance || outcome.TargetSlideNumber is null)
+        if (outcome.TargetSlideNumber is null)
         {
             return;
         }

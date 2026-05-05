@@ -44,8 +44,8 @@ public sealed class OllamaSlideEvaluationService : ILocalSlideEvaluationService
             ChatOptions chatOptions = new()
             {
                 MaxOutputTokens = options.MaxTokens,
-                Temperature = 0.0f,
-                ResponseFormat = ChatResponseFormat.ForJsonSchema<LlmDecisionResponse>(),
+                Temperature = 0.2f,
+                ResponseFormat = ChatResponseFormat.ForJsonSchema<DecisionResponse>(),
                 Tools = tools.Count > 0 ? tools : null,
             };
 
@@ -55,7 +55,7 @@ public sealed class OllamaSlideEvaluationService : ILocalSlideEvaluationService
                 new(ChatRole.User, userPrompt),
             ];
 
-            ChatResponse<LlmDecisionResponse> response = await client.GetResponseAsync<LlmDecisionResponse>(messages, chatOptions, cancellationToken:cancellationToken)
+            ChatResponse<DecisionResponse> response = await client.GetResponseAsync<DecisionResponse>(messages, chatOptions, cancellationToken:cancellationToken)
                 .ConfigureAwait(false);
 
             return ParseResponse(response, context.CandidateSlides);
@@ -69,21 +69,17 @@ public sealed class OllamaSlideEvaluationService : ILocalSlideEvaluationService
     private static string BuildSystemPrompt()
     {
         return $$"""
-            You are deciding whether to chage slides for a PowerPoint presentation.
+            You are deciding which slide to show during a PowerPoint presentation.
 
             Rules:
-            - Only choose from the listed indexed slides.
-            - You may choose a slide before or after the current slide if it is the best match.
-            - Prefer null if the transcript is ambiguous.
-            - Do not invent slide numbers.
-            - Slide numbers represent the stable deck order and must be used exactly as listed.
-            - Treat the prompt text as the intent for when the speaker is ready to show the slide.
+            - The target slide number must come from the indexed slide numbers.
+            - You must provide a reason for picking a slide.
+            - Provide a confidence value for picking the slide from 0 to 100, where 0 is no confidence and 100 is absolute confidence.
             - Give the highest priority to the next slide in the deck.
             - Avoid moving backwards through the deck unless the transcript clearly indicates a return to a previous slide.
-            - Always provide a reason for switching slides.
+            - If the user explicitly requests to move to the next or previous slide, you must do so.
             
             - You have access to a search_transcript tool that searches the full transcript using regex.
-            - The transcript provided below only covers the last 60 seconds.
             - If you need more context to make a decision, use search_transcript to query earlier parts of the transcript.
             """;
     }
@@ -149,14 +145,14 @@ public sealed class OllamaSlideEvaluationService : ILocalSlideEvaluationService
         return sb.ToString().TrimEnd();
     }
 
-    private static SlideSwitchEvaluation ParseResponse(ChatResponse<LlmDecisionResponse> response, IReadOnlyList<PowerPointSlideInfo> candidateSlides)
+    private static SlideSwitchEvaluation ParseResponse(ChatResponse<DecisionResponse> response, IReadOnlyList<PowerPointSlideInfo> candidateSlides)
     {
         if (response is null || response.Result is null)
         {
             return SlideSwitchEvaluation.Fail("Ollama produced an empty response.");
         }
 
-        LlmDecisionResponse? result = response.Result;
+        DecisionResponse? result = response.Result;
         if (result is null)
         {
             return SlideSwitchEvaluation.Fail("Ollama returned a non-JSON response.");
@@ -169,14 +165,12 @@ public sealed class OllamaSlideEvaluationService : ILocalSlideEvaluationService
         }
 
         int confidence = Math.Clamp(result.Confidence, 0, 100);
-        string reason = string.IsNullOrWhiteSpace(result.Reason)
-            ? "No explanation was provided."
-            : result.Reason.Trim();
+        string reason = result.Reason?.Trim() ?? "";
 
         return new SlideSwitchEvaluation(targetSlide, confidence, reason);
     }
 
-    private sealed record LlmDecisionResponse(
+    private sealed record DecisionResponse(
         int? TargetSlideNumber,
         int Confidence,
         string? Reason);

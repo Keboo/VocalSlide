@@ -151,8 +151,9 @@ public sealed class WhisperTranscriptionService : ILocalTranscriptionService, IA
                 options.BitsPerSample);
 
             StringBuilder transcriptBuilder = new();
-            await foreach (var segment in processor.ProcessAsync(wavStream).ConfigureAwait(false))
+            await foreach (var segment in processor.ProcessAsync(wavStream, cancellationToken).ConfigureAwait(false))
             {
+                if (segment.NoSpeechProbability > 0.8) continue;
                 if (!string.IsNullOrWhiteSpace(segment.Text))
                 {
                     transcriptBuilder.Append(segment.Text.Trim()).Append(' ');

@@ -19,7 +19,6 @@ public class AutoAdvancePolicyTests
             null,
             TimeSpan.FromSeconds(4));
 
-        await Assert.That(result.ShouldAdvance).IsFalse();
         await Assert.That(result.TargetSlideNumber.HasValue).IsFalse();
     }
 
@@ -37,7 +36,6 @@ public class AutoAdvancePolicyTests
             new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero),
             TimeSpan.FromSeconds(5));
 
-        await Assert.That(result.ShouldAdvance).IsFalse();
         await Assert.That(result.TargetSlideNumber.HasValue).IsFalse();
     }
 
@@ -55,7 +53,6 @@ public class AutoAdvancePolicyTests
             null,
             TimeSpan.FromSeconds(5));
 
-        await Assert.That(result.ShouldAdvance).IsFalse();
         await Assert.That(result.TargetSlideNumber.HasValue).IsFalse();
     }
 
@@ -73,7 +70,6 @@ public class AutoAdvancePolicyTests
             null,
             TimeSpan.FromSeconds(4));
 
-        await Assert.That(result.ShouldAdvance).IsTrue();
         await Assert.That(result.TargetSlideNumber).IsEqualTo(5);
         await Assert.That(result.Confidence).IsEqualTo(94);
     }
@@ -92,8 +88,7 @@ public class AutoAdvancePolicyTests
             null,
             TimeSpan.FromSeconds(4));
 
-        await Assert.That(result.ShouldAdvance).IsTrue();
         await Assert.That(result.TargetSlideNumber).IsEqualTo(2);
-        await Assert.That(result.Confidence).IsEqualTo(0.91);
+        await Assert.That(result.Confidence).IsEqualTo(91);
     }
 }
