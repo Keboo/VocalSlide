@@ -21,7 +21,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly AutoAdvancePolicy _autoAdvancePolicy;
     private readonly Dispatcher _dispatcher;
     private readonly Lock _transcriptLock = new();
-    private readonly Queue<string> _transcriptChunks = new();
+    private readonly Queue<TranscriptEntry> _transcriptChunks = new();
     private readonly SemaphoreSlim _evaluationGate = new(1, 1);
 
     private IReadOnlyList<PowerPointSlideInfo> _slideCache = [];
@@ -57,9 +57,9 @@ public partial class MainWindowViewModel : ObservableObject
         RefreshModelAvailability();
     }
 
-    public ObservableCollection<PowerPointSlideInfo> Slides { get; } = new();
+    public ObservableCollection<PowerPointSlideInfo> Slides { get; } = [];
 
-    public ObservableCollection<DownloadableModelOption> WhisperDownloadOptions { get; } = new();
+    public ObservableCollection<DownloadableModelOption> WhisperDownloadOptions { get; } = [];
 
     [ObservableProperty]
     private string _modelStorageDirectory = string.Empty;
@@ -551,17 +551,14 @@ public partial class MainWindowViewModel : ObservableObject
     {
         lock (_transcriptLock)
         {
-            _transcriptChunks.Enqueue(transcriptChunk.Trim());
+            _transcriptChunks.Enqueue(new TranscriptEntry(transcriptChunk.Trim(), DateTimeOffset.Now));
 
             while (_transcriptChunks.Count > MaxTranscriptChunks)
             {
                 _transcriptChunks.Dequeue();
             }
 
-            string transcript = string.Join(" ", _transcriptChunks);
-            TranscriptWindow = transcript.Length <= MaxTranscriptCharacters
-                ? transcript
-                : transcript[^MaxTranscriptCharacters..];
+            TranscriptWindow = FormatTranscriptWindow();
         }
     }
 
@@ -569,8 +566,17 @@ public partial class MainWindowViewModel : ObservableObject
     {
         lock (_transcriptLock)
         {
-            return string.Join(" ", _transcriptChunks);
+            return string.Join(" ", _transcriptChunks.Select(entry => entry.Text));
         }
+    }
+
+    private string FormatTranscriptWindow()
+    {
+        string transcript = string.Join(Environment.NewLine,
+            _transcriptChunks.Select(entry => $"[{entry.Timestamp:HH:mm:ss}] {entry.Text}"));
+        return transcript.Length <= MaxTranscriptCharacters
+            ? transcript
+            : transcript[^MaxTranscriptCharacters..];
     }
 
     private void ResetTranscript()
