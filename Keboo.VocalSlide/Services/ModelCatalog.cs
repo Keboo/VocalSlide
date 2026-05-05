@@ -22,12 +22,7 @@ public static class ModelCatalog
     public static IReadOnlyList<DownloadableModelOption> WhisperModels { get; } =
         [DefaultWhisper, BalancedWhisper];
 
-    public static DownloadableModelOption DefaultLlm { get; } = new(
-        "qwen2.5-0.5b-instruct-q4-k-m",
-        "Qwen 2.5 0.5B Instruct Q4_K_M (Recommended for speed)",
-        "qwen2.5-0.5b-instruct-q4_k_m.gguf",
-        "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true",
-        "Small GGUF instruct model tuned for low-latency local prompting.");
+    public static string DefaultOllamaModelName { get; } = "qwen2.5:0.5b";
 
     public static string StorageDirectory { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Keboo.VocalSlide");

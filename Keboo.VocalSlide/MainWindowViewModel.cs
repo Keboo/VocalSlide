@@ -20,12 +20,12 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IModelDownloadService _modelDownloadService;
     private readonly AutoAdvancePolicy _autoAdvancePolicy;
     private readonly Dispatcher _dispatcher;
-    private readonly object _transcriptLock = new();
+    private readonly Lock _transcriptLock = new();
     private readonly Queue<string> _transcriptChunks = new();
     private readonly SemaphoreSlim _evaluationGate = new(1, 1);
 
-    private IReadOnlyList<PowerPointSlideInfo> _slideCache = Array.Empty<PowerPointSlideInfo>();
-    private IReadOnlyList<PowerPointSlideInfo> _automationPromptIndex = Array.Empty<PowerPointSlideInfo>();
+    private IReadOnlyList<PowerPointSlideInfo> _slideCache = [];
+    private IReadOnlyList<PowerPointSlideInfo> _automationPromptIndex = [];
     private CancellationTokenSource? _automationCts;
     private DateTimeOffset? _lastAdvanceAt;
 
@@ -53,9 +53,6 @@ public partial class MainWindowViewModel : ObservableObject
 
         SelectedWhisperDownloadOption = ModelCatalog.DefaultWhisper;
         WhisperModelPath = _modelDownloadService.GetStoredFilePath(ModelCatalog.DefaultWhisper.FileName);
-
-        LlmDownloadUrl = ModelCatalog.DefaultLlm.DownloadUrl;
-        LlmModelPath = _modelDownloadService.GetStoredFilePath(ModelCatalog.DefaultLlm.FileName);
 
         RefreshModelAvailability();
     }
@@ -113,19 +110,10 @@ public partial class MainWindowViewModel : ObservableObject
     private string _whisperModelPath = string.Empty;
 
     [ObservableProperty]
-    private string _llmDownloadUrl = string.Empty;
+    private string _ollamaEndpoint = "http://localhost:11434";
 
     [ObservableProperty]
-    private string _llmDownloadStatus = "Paste a direct GGUF URL or use the recommended default.";
-
-    [ObservableProperty]
-    private double _llmDownloadPercent;
-
-    [ObservableProperty]
-    private bool _isLlmDownloadInProgress;
-
-    [ObservableProperty]
-    private string _llmModelPath = string.Empty;
+    private string _ollamaModelName = "qwen2.5:0.5b";
 
     [ObservableProperty]
     private string _transcriptionLanguage = "en";
@@ -138,12 +126,6 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private int _decisionCooldownSeconds = 4;
-
-    [ObservableProperty]
-    private int _llmContextSize = 2048;
-
-    [ObservableProperty]
-    private int _llmGpuLayerCount;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsPaused))]
@@ -182,8 +164,6 @@ public partial class MainWindowViewModel : ObservableObject
 
     partial void OnIsWhisperDownloadInProgressChanged(bool value) => UpdateCommandStates();
 
-    partial void OnIsLlmDownloadInProgressChanged(bool value) => UpdateCommandStates();
-
     partial void OnCurrentSlideNumberChanged(int value) => UpdateCommandStates();
 
     partial void OnSelectedSlideChanged(PowerPointSlideInfo? value) => UpdateCommandStates();
@@ -207,33 +187,6 @@ public partial class MainWindowViewModel : ObservableObject
         if (!IsWhisperDownloadInProgress)
         {
             UpdateWhisperDownloadStatusFromPath(value);
-        }
-    }
-
-    partial void OnLlmDownloadUrlChanged(string value)
-    {
-        if (Uri.TryCreate(value, UriKind.Absolute, out _))
-        {
-            LlmModelPath = _modelDownloadService.GetStoredFilePathFromUrl(value);
-            if (!IsLlmDownloadInProgress)
-            {
-                UpdateLlmDownloadStatusFromPath(LlmModelPath);
-            }
-        }
-        else if (!IsLlmDownloadInProgress)
-        {
-            LlmDownloadPercent = 0;
-            LlmDownloadStatus = "Enter a valid direct GGUF download URL.";
-        }
-
-        UpdateCommandStates();
-    }
-
-    partial void OnLlmModelPathChanged(string value)
-    {
-        if (!IsLlmDownloadInProgress)
-        {
-            UpdateLlmDownloadStatusFromPath(value);
         }
     }
 
@@ -287,51 +240,6 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanDownloadLlmModel))]
-    private async Task DownloadLlmModelAsync()
-    {
-        if (!Uri.TryCreate(LlmDownloadUrl, UriKind.Absolute, out _))
-        {
-            LlmDownloadPercent = 0;
-            LlmDownloadStatus = "Enter a valid direct GGUF download URL.";
-            StatusMessage = LlmDownloadStatus;
-            return;
-        }
-
-        IsLlmDownloadInProgress = true;
-        LlmDownloadPercent = 0;
-        LlmDownloadStatus = "Starting GGUF download...";
-        StatusMessage = LlmDownloadStatus;
-
-        try
-        {
-            Progress<ModelDownloadProgress> progress = new(progressUpdate =>
-            {
-                LlmDownloadPercent = progressUpdate.PercentComplete;
-                LlmDownloadStatus = progressUpdate.StatusMessage;
-            });
-
-            string downloadedPath = await _modelDownloadService
-                .DownloadFromUrlAsync(LlmDownloadUrl, explicitFileName: null, progress, CancellationToken.None)
-                .ConfigureAwait(true);
-
-            LlmModelPath = downloadedPath;
-            LlmDownloadPercent = 100;
-            LlmDownloadStatus = $"Ready: {Path.GetFileName(downloadedPath)}";
-            StatusMessage = $"Downloaded the GGUF model to {ModelStorageDirectory}.";
-        }
-        catch (Exception ex)
-        {
-            LlmDownloadPercent = 0;
-            LlmDownloadStatus = $"Download failed: {ex.Message}";
-            StatusMessage = LlmDownloadStatus;
-        }
-        finally
-        {
-            IsLlmDownloadInProgress = false;
-        }
-    }
-
     [RelayCommand]
     private void OpenModelFolder()
     {
@@ -376,7 +284,6 @@ public partial class MainWindowViewModel : ObservableObject
         try
         {
             EnsureModelPath(WhisperModelPath, "Whisper model");
-            EnsureModelPath(LlmModelPath, "LLM model");
 
             if (!IsPowerPointConnected)
             {
@@ -512,8 +419,6 @@ public partial class MainWindowViewModel : ObservableObject
 
     private bool CanDownloadWhisperModel() => !IsWhisperDownloadInProgress && SelectedWhisperDownloadOption is not null;
 
-    private bool CanDownloadLlmModel() => !IsLlmDownloadInProgress && Uri.TryCreate(LlmDownloadUrl, UriKind.Absolute, out _);
-
     private bool CanStartAutomation() => !IsAutomationRunning;
 
     private bool CanStopAutomation() => IsAutomationRunning;
@@ -608,9 +513,8 @@ public partial class MainWindowViewModel : ObservableObject
 
         SlideEvaluationContext evaluationContext = new(currentSlide, candidateSlides, transcript);
         LlmOptions llmOptions = new(
-            NormalizeFilePath(LlmModelPath),
-            Math.Max(1024, LlmContextSize),
-            Math.Max(0, LlmGpuLayerCount));
+            OllamaEndpoint,
+            OllamaModelName);
 
         SlideSwitchEvaluation evaluation = await _slideEvaluationService
             .EvaluateAsync(evaluationContext, llmOptions, cancellationToken)
@@ -781,7 +685,6 @@ public partial class MainWindowViewModel : ObservableObject
     private void RefreshModelAvailability()
     {
         UpdateWhisperDownloadStatusFromPath(WhisperModelPath);
-        UpdateLlmDownloadStatusFromPath(LlmModelPath);
     }
 
     private void UpdateWhisperDownloadStatusFromPath(string? path)
@@ -806,37 +709,9 @@ public partial class MainWindowViewModel : ObservableObject
             : $"{SelectedWhisperDownloadOption.DisplayName} will be stored in {ModelStorageDirectory}.";
     }
 
-    private void UpdateLlmDownloadStatusFromPath(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            LlmDownloadPercent = 0;
-            LlmDownloadStatus = "Paste a direct GGUF URL or use the recommended default.";
-            return;
-        }
-
-        if (File.Exists(path))
-        {
-            LlmDownloadPercent = 100;
-            LlmDownloadStatus = $"Ready: {Path.GetFileName(path)}";
-            return;
-        }
-
-        if (!Uri.TryCreate(LlmDownloadUrl, UriKind.Absolute, out _))
-        {
-            LlmDownloadPercent = 0;
-            LlmDownloadStatus = "Enter a valid direct GGUF download URL.";
-            return;
-        }
-
-        LlmDownloadPercent = 0;
-        LlmDownloadStatus = $"The downloaded GGUF will be stored in {ModelStorageDirectory}.";
-    }
-
     private void UpdateCommandStates()
     {
         DownloadWhisperModelCommand.NotifyCanExecuteChanged();
-        DownloadLlmModelCommand.NotifyCanExecuteChanged();
         StartAutomationCommand.NotifyCanExecuteChanged();
         StopAutomationCommand.NotifyCanExecuteChanged();
         PauseCommand.NotifyCanExecuteChanged();

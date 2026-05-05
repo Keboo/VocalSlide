@@ -8,7 +8,7 @@ namespace Keboo.VocalSlide.Services;
 
 public sealed class WhisperTranscriptionService : ILocalTranscriptionService, IAsyncDisposable, IDisposable
 {
-    private readonly object _bufferLock = new();
+    private readonly Lock _bufferLock = new();
 
     private MemoryStream _pcmBuffer = new();
     private WaveInEvent? _waveIn;

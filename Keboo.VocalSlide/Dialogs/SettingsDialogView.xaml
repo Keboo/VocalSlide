@@ -80,28 +80,15 @@
                        Margin="0,4,0,16" />
 
           <TextBlock FontWeight="SemiBold"
-                     Text="LLM model (GGUF)"
+                     Text="Ollama connection"
                      Style="{StaticResource MaterialDesignSubtitle2TextBlock}"
                      Margin="0,0,0,4" />
           <TextBox Margin="0,0,0,4"
-                   Text="{Binding LlmDownloadUrl, UpdateSourceTrigger=PropertyChanged}"
-                   materialDesign:HintAssist.Hint="Direct GGUF download URL" />
-          <DockPanel Margin="0,0,0,4">
-            <Button DockPanel.Dock="Right"
-                    Content="Download"
-                    Command="{Binding DownloadLlmModelCommand}"
-                    Margin="8,0,0,0" />
-            <TextBox Text="{Binding LlmModelPath, UpdateSourceTrigger=PropertyChanged}"
-                     materialDesign:HintAssist.Hint="Path to .gguf file" />
-          </DockPanel>
-          <TextBlock Text="{Binding LlmDownloadStatus}"
-                     TextWrapping="Wrap"
-                     Style="{StaticResource MaterialDesignCaptionTextBlock}" />
-          <ProgressBar Height="4"
-                       Minimum="0"
-                       Maximum="100"
-                       Value="{Binding LlmDownloadPercent}"
-                       Margin="0,4,0,16" />
+                   Text="{Binding OllamaEndpoint, UpdateSourceTrigger=PropertyChanged}"
+                   materialDesign:HintAssist.Hint="Ollama endpoint URL" />
+          <TextBox Margin="0,0,0,16"
+                   Text="{Binding OllamaModelName, UpdateSourceTrigger=PropertyChanged}"
+                   materialDesign:HintAssist.Hint="Model name (e.g. qwen2.5:0.5b)" />
 
           <Separator Margin="0,0,0,16" />
 
@@ -125,22 +112,8 @@
                    Text="{Binding ConfidenceThreshold, UpdateSourceTrigger=PropertyChanged}" />
 
           <TextBlock Text="Cooldown seconds" />
-          <TextBox Margin="0,4,0,12"
+          <TextBox Margin="0,4,0,16"
                    Text="{Binding DecisionCooldownSeconds, UpdateSourceTrigger=PropertyChanged}" />
-
-          <UniformGrid Columns="2"
-                       Margin="0,0,0,16">
-            <StackPanel Margin="0,0,8,0">
-              <TextBlock Text="LLM context size" />
-              <TextBox Margin="0,4,0,0"
-                       Text="{Binding LlmContextSize, UpdateSourceTrigger=PropertyChanged}" />
-            </StackPanel>
-            <StackPanel Margin="8,0,0,0">
-              <TextBlock Text="GPU layers" />
-              <TextBox Margin="0,4,0,0"
-                       Text="{Binding LlmGpuLayerCount, UpdateSourceTrigger=PropertyChanged}" />
-            </StackPanel>
-          </UniformGrid>
 
         </StackPanel>
       </ScrollViewer>

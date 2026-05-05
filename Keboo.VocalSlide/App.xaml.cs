@@ -58,7 +58,7 @@ public partial class App : Application
                 services.AddSingleton<IPresenterNotesParser, PresenterNotesParser>();
                 services.AddSingleton<IPowerPointSessionService, PowerPointSessionService>();
                 services.AddSingleton<ILocalTranscriptionService, WhisperTranscriptionService>();
-                services.AddSingleton<ILocalSlideEvaluationService, LlamaSlideEvaluationService>();
+                services.AddSingleton<ILocalSlideEvaluationService, OllamaSlideEvaluationService>();
                 services.AddSingleton<IModelDownloadService, ModelDownloadService>();
                 services.AddSingleton<AutoAdvancePolicy>();
             });

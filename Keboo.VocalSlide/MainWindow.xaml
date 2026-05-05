@@ -1,4 +1,4 @@
-﻿<Window x:Class="Keboo.VocalSlide.MainWindow"
+<Window x:Class="Keboo.VocalSlide.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -14,7 +14,7 @@
         MinWidth="640"
         MinHeight="480">
 
-  <materialDesign:DialogHost Identifier="RootDialog">
+  <materialDesign:DialogHost Identifier="RootDialog" CloseOnClickAway="True">
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
@@ -203,7 +203,8 @@
                       Height="22"
                       VerticalAlignment="Center">
                 <TextBlock Text="Clear"
-                           FontSize="10" />
+                           FontSize="10"
+                           Foreground="{DynamicResource PrimaryHueLightBrush}" />
               </Button>
               <TextBlock Text="Transcript"
                          FontWeight="SemiBold"
