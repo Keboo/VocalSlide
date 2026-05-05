@@ -7,16 +7,11 @@ public sealed class AutoAdvancePolicy
     public AutoAdvanceDecisionOutcome Evaluate(
         SlideSwitchEvaluation evaluation,
         IReadOnlySet<int> candidateSlideNumbers,
-        double confidenceThreshold,
+        int confidenceThreshold,
         DateTimeOffset evaluationTime,
         DateTimeOffset? lastAdvanceAt,
         TimeSpan cooldown)
     {
-        if (!evaluation.ShouldAdvance)
-        {
-            return AutoAdvanceDecisionOutcome.Skip($"Held current slide. {evaluation.Reason}");
-        }
-
         if (evaluation.TargetSlideNumber is null)
         {
             return AutoAdvanceDecisionOutcome.Skip("Held current slide. The evaluator requested a slide change without a target slide.");

@@ -5,15 +5,12 @@ namespace Keboo.VocalSlide.Services;
 public static class SlideAutomationIndex
 {
     public static IReadOnlyList<PowerPointSlideInfo> Build(IReadOnlyList<PowerPointSlideInfo> slides) =>
-        slides
+        [.. slides
             .Where(slide => !string.IsNullOrWhiteSpace(slide.AutomationPrompt))
-            .OrderBy(slide => slide.SlideNumber)
-            .ToArray();
+            .OrderBy(slide => slide.SlideNumber)];
 
     public static IReadOnlyList<PowerPointSlideInfo> BuildCandidates(IReadOnlyList<PowerPointSlideInfo> indexedSlides, int currentSlideNumber) =>
-        indexedSlides
-            .Where(slide => slide.SlideNumber != currentSlideNumber)
-            .ToArray();
+        [.. indexedSlides.Where(slide => slide.SlideNumber != currentSlideNumber)];
 
     public static PowerPointSlideInfo? FindNearest(IReadOnlyList<PowerPointSlideInfo> indexedSlides, int activeSlideNumber)
     {

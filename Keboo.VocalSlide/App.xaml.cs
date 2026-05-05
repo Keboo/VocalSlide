@@ -13,7 +13,7 @@ public partial class App : Application
 
     public App()
     {
-        _host = CreateHostBuilder(Array.Empty<string>()).Build();
+        _host = CreateHostBuilder([]).Build();
     }
 
     [STAThread]

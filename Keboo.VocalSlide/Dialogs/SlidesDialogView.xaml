@@ -29,7 +29,7 @@
                   Margin="0,0,4,0">
             <materialDesign:PackIcon Kind="Refresh" />
           </Button>
-          <TextBlock Text="Slides and Automation Prompts"
+          <TextBlock Text="Slides and Prompts"
                      VerticalAlignment="Center"
                      Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                      Foreground="White" />
@@ -57,26 +57,33 @@
         </DockPanel>
       </Border>
 
-      <DataGrid Margin="0"
-                ItemsSource="{Binding Slides}"
-                SelectedItem="{Binding SelectedSlide, Mode=TwoWay}"
-                AutoGenerateColumns="False"
-                CanUserAddRows="False"
-                CanUserDeleteRows="False"
-                IsReadOnly="True"
-                SelectionMode="Single">
-        <DataGrid.Columns>
-          <DataGridTextColumn Header="#"
-                              Binding="{Binding SlideNumber}"
-                              Width="50" />
-          <DataGridTextColumn Header="Title"
-                              Binding="{Binding Title}"
-                              Width="200" />
-          <DataGridTextColumn Header="Prompt"
-                              Binding="{Binding PromptPreview}"
-                              Width="*" />
-        </DataGrid.Columns>
-      </DataGrid>
+      <DockPanel>
+        <CheckBox DockPanel.Dock="Top"
+                  Content="Show all slides"
+                  IsChecked="{Binding ShowAllSlides}"
+                  Margin="16,8" />
+        <DataGrid Margin="0"
+                  ItemsSource="{Binding FilteredSlides}"
+                  SelectedItem="{Binding SelectedSlide, Mode=TwoWay}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+>
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="#"
+                                Binding="{Binding SlideNumber}"
+                                Width="50" />
+            <DataGridTextColumn Header="Title"
+                                Binding="{Binding Title}"
+                                Width="200" />
+            <DataGridTextColumn Header="Prompt"
+                                Binding="{Binding PromptPreview}"
+                                Width="*" />
+          </DataGrid.Columns>
+        </DataGrid>
+      </DockPanel>
 
     </DockPanel>
   </materialDesign:Card>

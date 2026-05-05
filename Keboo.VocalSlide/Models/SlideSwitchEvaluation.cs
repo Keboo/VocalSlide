@@ -1,7 +1,10 @@
 namespace Keboo.VocalSlide.Models;
 
 public sealed record SlideSwitchEvaluation(
-    bool ShouldAdvance,
     int? TargetSlideNumber,
-    double Confidence,
-    string Reason);
+    int Confidence,
+    string Reason)
+
+{
+    public static SlideSwitchEvaluation Fail(string reason) => new(null, 0, reason);
+}

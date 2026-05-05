@@ -5,7 +5,7 @@ namespace Keboo.VocalSlide.Services;
 
 public sealed partial class PresenterNotesParser : IPresenterNotesParser
 {
-    [GeneratedRegex(@"^\s*-{3,}\s*$", RegexOptions.Multiline)]
+    [GeneratedRegex(@"(^|\s+)-{3,}\s+", RegexOptions.Multiline)]
     private static partial Regex DelimiterRegex();
 
     public PresenterNotesParseResult Parse(string? rawNotes)
@@ -31,8 +31,10 @@ public sealed partial class PresenterNotesParser : IPresenterNotesParser
 
     private static string NormalizeLineEndings(string rawNotes) =>
         rawNotes
-            .Replace("\r\n", "\n")
-            .Replace('\r', '\n')
-            .Replace("\u2028", "\n", StringComparison.Ordinal)
-            .Replace("\u2029", "\n", StringComparison.Ordinal);
+        .Replace("\r\n", "\n")
+        .Replace('\r', '\n')
+        .Replace("\v", "\n")
+        .Replace("\u2028", "\n", StringComparison.Ordinal)
+        .Replace("\u2029", "\n", StringComparison.Ordinal);
+
 }

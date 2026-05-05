@@ -1,17 +1,16 @@
-using Keboo.VocalSlide.Models;
-using Microsoft.Extensions.AI;
-using OllamaSharp;
 using System.Text;
-using System.Text.Json;
+
+using Keboo.VocalSlide.Models;
+
+using Microsoft.Extensions.AI;
+
+using OllamaSharp;
 
 namespace Keboo.VocalSlide.Services;
 
 public sealed class OllamaSlideEvaluationService : ILocalSlideEvaluationService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
+    private static readonly TimeSpan RecentTranscriptWindow = TimeSpan.FromSeconds(60);
 
     public IList<AITool> Tools { get; } = [];
 
@@ -22,14 +21,17 @@ public sealed class OllamaSlideEvaluationService : ILocalSlideEvaluationService
     {
         if (context.CandidateSlides.Count == 0)
         {
-            return new SlideSwitchEvaluation(false, null, 0.0, "No indexed slides were available to evaluate.");
+            return SlideSwitchEvaluation.Fail("No indexed slides were available to evaluate.");
         }
 
         try
         {
             IChatClient client = new OllamaApiClient(new Uri(options.OllamaEndpoint), options.ModelName);
 
-            if (Tools.Count > 0)
+            List<AITool> tools = [.. Tools];
+            tools.Add(TranscriptSearchTool.Create(context.FullTranscript));
+
+            if (tools.Count > 0)
             {
                 client = new ChatClientBuilder(client)
                     .UseFunctionInvocation()
@@ -43,7 +45,8 @@ public sealed class OllamaSlideEvaluationService : ILocalSlideEvaluationService
             {
                 MaxOutputTokens = options.MaxTokens,
                 Temperature = 0.0f,
-                Tools = Tools.Count > 0 ? Tools : null,
+                ResponseFormat = ChatResponseFormat.ForJsonSchema<LlmDecisionResponse>(),
+                Tools = tools.Count > 0 ? tools : null,
             };
 
             List<ChatMessage> messages =
@@ -52,33 +55,36 @@ public sealed class OllamaSlideEvaluationService : ILocalSlideEvaluationService
                 new(ChatRole.User, userPrompt),
             ];
 
-            ChatResponse response = await client.GetResponseAsync(messages, chatOptions, cancellationToken)
+            ChatResponse<LlmDecisionResponse> response = await client.GetResponseAsync<LlmDecisionResponse>(messages, chatOptions, cancellationToken:cancellationToken)
                 .ConfigureAwait(false);
 
-            string rawResponse = response.Text ?? string.Empty;
-            return ParseResponse(rawResponse, context.CandidateSlides);
+            return ParseResponse(response, context.CandidateSlides);
         }
         catch (Exception ex)
         {
-            return new SlideSwitchEvaluation(false, null, 0.0, $"Ollama evaluation failed: {ex.Message}");
+            return SlideSwitchEvaluation.Fail($"Ollama evaluation failed: {ex.Message}");
         }
     }
 
     private static string BuildSystemPrompt()
     {
-        return """
-            You are deciding whether a speaker has reached the content for a PowerPoint slide in the current deck.
-
-            Return JSON only, with no markdown fences and no extra commentary:
-            {"shouldAdvance":true|false,"targetSlideNumber":<integer or null>,"confidence":<number between 0 and 1>,"reason":"<short explanation>"}
+        return $$"""
+            You are deciding whether to chage slides for a PowerPoint presentation.
 
             Rules:
             - Only choose from the listed indexed slides.
             - You may choose a slide before or after the current slide if it is the best match.
-            - Prefer false if the transcript is ambiguous.
-            - Do not invent slide numbers or extra fields.
+            - Prefer null if the transcript is ambiguous.
+            - Do not invent slide numbers.
             - Slide numbers represent the stable deck order and must be used exactly as listed.
             - Treat the prompt text as the intent for when the speaker is ready to show the slide.
+            - Give the highest priority to the next slide in the deck.
+            - Avoid moving backwards through the deck unless the transcript clearly indicates a return to a previous slide.
+            - Always provide a reason for switching slides.
+            
+            - You have access to a search_transcript tool that searches the full transcript using regex.
+            - The transcript provided below only covers the last 60 seconds.
+            - If you need more context to make a decision, use search_transcript to query earlier parts of the transcript.
             """;
     }
 
@@ -88,73 +94,90 @@ public sealed class OllamaSlideEvaluationService : ILocalSlideEvaluationService
         foreach (PowerPointSlideInfo candidate in context.CandidateSlides)
         {
             candidateBuilder.AppendLine($"- SlideNumber: {candidate.SlideNumber}");
-            candidateBuilder.AppendLine($"  Title: {candidate.Title}");
             candidateBuilder.AppendLine($"  Prompt: {candidate.AutomationPrompt}");
         }
+
+        string recentTranscript = BuildRecentTranscript(context.FullTranscript);
 
         return $$"""
             Current slide:
             - SlideNumber: {{context.CurrentSlide.SlideNumber}}
-            - Title: {{context.CurrentSlide.Title}}
             - Prompt: {{context.CurrentSlide.AutomationPrompt}}
 
             Indexed slides:
             {{candidateBuilder.ToString().TrimEnd()}}
 
-            Transcript window (spoken since the last slide change):
-            {{context.TranscriptWindow}}
+            Transcript (last 60 seconds):
+            {{recentTranscript}}
             """;
     }
 
-    private static SlideSwitchEvaluation ParseResponse(string rawResponse, IReadOnlyList<PowerPointSlideInfo> candidateSlides)
+    private static string BuildRecentTranscript(IReadOnlyList<TranscriptEntry> fullTranscript)
     {
-        if (string.IsNullOrWhiteSpace(rawResponse))
+        if (fullTranscript.Count == 0)
         {
-            return new SlideSwitchEvaluation(false, null, 0.0, "Ollama produced an empty response.");
+            return string.Empty;
         }
 
-        string? json = ExtractJson(rawResponse);
-        if (string.IsNullOrWhiteSpace(json))
+        DateTimeOffset cutoff = DateTimeOffset.Now - RecentTranscriptWindow;
+        var recentEntries = new List<TranscriptEntry>();
+
+        for (int i = fullTranscript.Count - 1; i >= 0; i--)
         {
-            return new SlideSwitchEvaluation(false, null, 0.0, $"Ollama returned a non-JSON response: {rawResponse.Trim()}");
+            TranscriptEntry entry = fullTranscript[i];
+            if (entry.Timestamp >= cutoff)
+            {
+                recentEntries.Add(entry);
+            }
+            else
+            {
+                break;
+            }
         }
 
-        LlmDecisionResponse? response = JsonSerializer.Deserialize<LlmDecisionResponse>(json, JsonOptions);
-        if (response is null)
+        if (recentEntries.Count == 0)
         {
-            return new SlideSwitchEvaluation(false, null, 0.0, "The Ollama response could not be parsed.");
+            return fullTranscript[^1].Text;
         }
 
-        int? targetSlide = response.ShouldAdvance ? response.TargetSlideNumber : null;
-        if (targetSlide is not null && candidateSlides.All(slide => slide.SlideNumber != targetSlide.Value))
+        StringBuilder sb = new();
+        for (int i = recentEntries.Count - 1; i >= 0; i--)
         {
-            return new SlideSwitchEvaluation(false, null, 0.0, "Ollama selected a slide outside the indexed slide set.");
+            sb.AppendLine($"[{recentEntries[i].Timestamp:HH:mm:ss}] {recentEntries[i].Text}");
         }
 
-        double confidence = Math.Clamp(response.Confidence, 0.0, 1.0);
-        string reason = string.IsNullOrWhiteSpace(response.Reason)
-            ? "No explanation was provided."
-            : response.Reason.Trim();
-
-        return new SlideSwitchEvaluation(response.ShouldAdvance, targetSlide, confidence, reason);
+        return sb.ToString().TrimEnd();
     }
 
-    private static string? ExtractJson(string rawResponse)
+    private static SlideSwitchEvaluation ParseResponse(ChatResponse<LlmDecisionResponse> response, IReadOnlyList<PowerPointSlideInfo> candidateSlides)
     {
-        int start = rawResponse.IndexOf('{');
-        int end = rawResponse.LastIndexOf('}');
-
-        if (start < 0 || end < start)
+        if (response is null || response.Result is null)
         {
-            return null;
+            return SlideSwitchEvaluation.Fail("Ollama produced an empty response.");
         }
 
-        return rawResponse[start..(end + 1)];
+        LlmDecisionResponse? result = response.Result;
+        if (result is null)
+        {
+            return SlideSwitchEvaluation.Fail("Ollama returned a non-JSON response.");
+        }
+
+        int? targetSlide = result.TargetSlideNumber;
+        if (targetSlide is not null && candidateSlides.All(slide => slide.SlideNumber != targetSlide.Value))
+        {
+            return SlideSwitchEvaluation.Fail("Ollama selected a slide outside the indexed slide set.");
+        }
+
+        int confidence = Math.Clamp(result.Confidence, 0, 100);
+        string reason = string.IsNullOrWhiteSpace(result.Reason)
+            ? "No explanation was provided."
+            : result.Reason.Trim();
+
+        return new SlideSwitchEvaluation(targetSlide, confidence, reason);
     }
 
     private sealed record LlmDecisionResponse(
-        bool ShouldAdvance,
         int? TargetSlideNumber,
-        double Confidence,
+        int Confidence,
         string? Reason);
 }

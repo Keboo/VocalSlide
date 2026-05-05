@@ -3,8 +3,10 @@ using CommunityToolkit.Mvvm.Input;
 using Keboo.VocalSlide.Models;
 using Keboo.VocalSlide.Services;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Windows.Data;
 using System.Windows.Threading;
 
 namespace Keboo.VocalSlide;
@@ -58,6 +60,32 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     public ObservableCollection<PowerPointSlideInfo> Slides { get; } = [];
+
+    [ObservableProperty]
+    private bool _showAllSlides;
+
+    private ICollectionView? _filteredSlides;
+    public ICollectionView FilteredSlides =>
+        _filteredSlides ??= CreateFilteredView();
+
+    private ICollectionView CreateFilteredView()
+    {
+        var view = CollectionViewSource.GetDefaultView(Slides);
+        view.Filter = FilterSlide;
+        return view;
+    }
+
+    private bool FilterSlide(object obj)
+    {
+        if (ShowAllSlides) return true;
+        return obj is PowerPointSlideInfo slide &&
+               !string.IsNullOrWhiteSpace(slide.AutomationPrompt);
+    }
+
+    partial void OnShowAllSlidesChanged(bool value)
+    {
+        FilteredSlides.Refresh();
+    }
 
     public ObservableCollection<DownloadableModelOption> WhisperDownloadOptions { get; } = [];
 
@@ -122,7 +150,7 @@ public partial class MainWindowViewModel : ObservableObject
     private int _indexedPromptSlideCount;
 
     [ObservableProperty]
-    private double _confidenceThreshold = 0.75;
+    private int _confidenceThreshold = 80;
 
     [ObservableProperty]
     private int _decisionCooldownSeconds = 4;
@@ -491,6 +519,8 @@ public partial class MainWindowViewModel : ObservableObject
             return;
         }
 
+        IReadOnlyList<TranscriptEntry> fullTranscript = GetFullTranscript();
+
         IReadOnlyList<PowerPointSlideInfo> slideCache = _slideCache;
         if (slideCache.Count == 0)
         {
@@ -511,7 +541,7 @@ public partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        SlideEvaluationContext evaluationContext = new(currentSlide, candidateSlides, transcript);
+        SlideEvaluationContext evaluationContext = new(currentSlide, candidateSlides, transcript, fullTranscript);
         LlmOptions llmOptions = new(
             OllamaEndpoint,
             OllamaModelName);
@@ -523,7 +553,7 @@ public partial class MainWindowViewModel : ObservableObject
         AutoAdvanceDecisionOutcome outcome = _autoAdvancePolicy.Evaluate(
             evaluation,
             candidateSlides.Select(slide => slide.SlideNumber).ToHashSet(),
-            Math.Clamp(ConfidenceThreshold, 0.0, 1.0),
+            Math.Clamp(ConfidenceThreshold, 0, 100),
             DateTimeOffset.UtcNow,
             _lastAdvanceAt,
             TimeSpan.FromSeconds(Math.Max(0, DecisionCooldownSeconds)));
@@ -567,6 +597,14 @@ public partial class MainWindowViewModel : ObservableObject
         lock (_transcriptLock)
         {
             return string.Join(" ", _transcriptChunks.Select(entry => entry.Text));
+        }
+    }
+
+    private IReadOnlyList<TranscriptEntry> GetFullTranscript()
+    {
+        lock (_transcriptLock)
+        {
+            return [.. _transcriptChunks];
         }
     }
 
@@ -623,6 +661,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (slideChanged)
         {
             ResetTranscript();
+            AppendTranscriptChunk($"--- Slide {slideShowState.CurrentSlideNumber} ---");
             _lastAdvanceAt = DateTimeOffset.UtcNow;
 
             if (IsAutomationRunning)
@@ -670,8 +709,8 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void ApplyConnectionFailure(string reason)
     {
-        _slideCache = Array.Empty<PowerPointSlideInfo>();
-        _automationPromptIndex = Array.Empty<PowerPointSlideInfo>();
+        _slideCache = [];
+        _automationPromptIndex = [];
         Slides.Clear();
         PresentationName = "Not connected";
         ConnectionSummary = reason;
