@@ -23,7 +23,7 @@
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.5.1" />
     <PackageVersion Include="OllamaSharp" Version="5.4.25" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.3.2" />
-    <PackageVersion Include="MaterialDesignThemes" Version="5.3.1" />
+    <PackageVersion Include="MaterialDesignThemes" Version="5.3.2" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
