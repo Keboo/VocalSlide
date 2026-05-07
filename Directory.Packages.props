@@ -32,7 +32,7 @@
     <PackageVersion Include="NAudio" Version="2.3.0" />
     <PackageVersion Include="System.Text.Json" Version="10.0.5" />
     <PackageVersion Include="TUnit" Version="1.22.6" />
-    <PackageVersion Include="TUnit.Assertions" Version="1.22.6" />
+    <PackageVersion Include="TUnit.Assertions" Version="1.43.11" />
     <PackageVersion Include="TUnit.Engine" Version="1.22.6" />
     <PackageVersion Include="Whisper.net" Version="1.9.0" />
     <PackageVersion Include="Whisper.net.Runtime" Version="1.9.0" />
