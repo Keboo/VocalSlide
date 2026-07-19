@@ -73,6 +73,10 @@
           <TextBlock Text="{Binding WhisperDownloadStatus}"
                      TextWrapping="Wrap"
                      Style="{StaticResource MaterialDesignCaptionTextBlock}" />
+          <TextBlock Text="{Binding WhisperModelRealtimeGuidance}"
+                     TextWrapping="Wrap"
+                     Margin="0,2,0,0"
+                     Style="{StaticResource MaterialDesignCaptionTextBlock}" />
           <ProgressBar Height="4"
                        Minimum="0"
                        Maximum="100"
@@ -101,6 +105,17 @@
           <TextBox Margin="0,4,0,12"
                    Text="{Binding TranscriptionLanguage, UpdateSourceTrigger=PropertyChanged}"
                    materialDesign:HintAssist.Hint="e.g. en" />
+
+          <TextBlock Text="Transcription profile" />
+          <ComboBox Margin="0,4,0,4"
+                   ItemsSource="{Binding TranscriptionProfiles}"
+                   SelectedItem="{Binding SelectedTranscriptionProfile}"
+                   DisplayMemberPath="DisplayName"
+                   materialDesign:HintAssist.Hint="Latency vs. accuracy profile" />
+          <TextBlock Margin="0,0,0,12"
+                    Text="{Binding SelectedTranscriptionProfile.Description}"
+                    TextWrapping="Wrap"
+                    Style="{StaticResource MaterialDesignCaptionTextBlock}" />
 
           <TextBlock Text="Indexed prompt slides" />
           <TextBox Margin="0,4,0,12"

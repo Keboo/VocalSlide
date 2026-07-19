@@ -53,7 +53,13 @@ public partial class MainWindowViewModel : ObservableObject
             WhisperDownloadOptions.Add(option);
         }
 
+        foreach (TranscriptionProfileOption option in ModelCatalog.TranscriptionProfiles)
+        {
+            TranscriptionProfiles.Add(option);
+        }
+
         SelectedWhisperDownloadOption = ModelCatalog.DefaultWhisper;
+        SelectedTranscriptionProfile = ModelCatalog.DefaultTranscriptionProfile;
         WhisperModelPath = _modelDownloadService.GetStoredFilePath(ModelCatalog.DefaultWhisper.FileName);
 
         RefreshModelAvailability();
@@ -88,6 +94,7 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     public ObservableCollection<DownloadableModelOption> WhisperDownloadOptions { get; } = [];
+    public ObservableCollection<TranscriptionProfileOption> TranscriptionProfiles { get; } = [];
 
     [ObservableProperty]
     private string _modelStorageDirectory = string.Empty;
@@ -136,6 +143,12 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private string _whisperModelPath = string.Empty;
+
+    [ObservableProperty]
+    private string _whisperModelRealtimeGuidance = string.Empty;
+
+    [ObservableProperty]
+    private TranscriptionProfileOption? _selectedTranscriptionProfile;
 
     [ObservableProperty]
     private string _ollamaEndpoint = "http://localhost:11434";
@@ -198,6 +211,8 @@ public partial class MainWindowViewModel : ObservableObject
 
     partial void OnSelectedWhisperDownloadOptionChanged(DownloadableModelOption? value)
     {
+        UpdateWhisperModelRealtimeGuidance(value);
+
         if (value is not null)
         {
             WhisperModelPath = _modelDownloadService.GetStoredFilePath(value.FileName);
@@ -208,6 +223,16 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         UpdateCommandStates();
+    }
+
+    partial void OnSelectedTranscriptionProfileChanged(TranscriptionProfileOption? value)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        StatusMessage = $"Transcription profile set to {value.DisplayName}.";
     }
 
     partial void OnWhisperModelPathChanged(string value)
@@ -335,14 +360,23 @@ public partial class MainWindowViewModel : ObservableObject
             _automationCts?.Dispose();
             _automationCts = new CancellationTokenSource();
 
+            TranscriptionProfileOption profile = SelectedTranscriptionProfile ?? ModelCatalog.DefaultTranscriptionProfile;
             TranscriptionOptions transcriptionOptions = new(
                 NormalizeFilePath(WhisperModelPath),
-                NormalizeLanguage(TranscriptionLanguage));
+                NormalizeLanguage(TranscriptionLanguage),
+                BufferMilliseconds: profile.BufferMilliseconds,
+                ChunkMilliseconds: profile.ChunkMilliseconds);
 
             await _transcriptionService.StartAsync(transcriptionOptions, HandleTranscriptChunkAsync, _automationCts.Token).ConfigureAwait(true);
 
             IsAutomationRunning = true;
-            StatusMessage = "Listening to the microphone and evaluating prompts on-device.";
+            string selectedModelLabel = SelectedWhisperDownloadOption?.DisplayName ?? Path.GetFileName(WhisperModelPath);
+            StatusMessage = $"Listening with {selectedModelLabel} and {profile.DisplayName} profile.";
+            if (SelectedWhisperDownloadOption is { IsCpuRealtimeFriendly: false })
+            {
+                StatusMessage += " This model may lag behind real-time on CPU-only laptops.";
+            }
+
             LastDecision = "Waiting for transcript...";
         }
         catch (Exception ex)
@@ -730,6 +764,17 @@ public partial class MainWindowViewModel : ObservableObject
     private void RefreshModelAvailability()
     {
         UpdateWhisperDownloadStatusFromPath(WhisperModelPath);
+        UpdateWhisperModelRealtimeGuidance(SelectedWhisperDownloadOption);
+    }
+
+    private void UpdateWhisperModelRealtimeGuidance(DownloadableModelOption? option)
+    {
+        WhisperModelRealtimeGuidance = option switch
+        {
+            null => string.Empty,
+            { IsCpuRealtimeFriendly: true } => "CPU guidance: this model is usually suitable for near real-time transcription.",
+            _ => "CPU guidance: this model improves accuracy but can fall behind real-time on many laptops."
+        };
     }
 
     private void UpdateWhisperDownloadStatusFromPath(string? path)

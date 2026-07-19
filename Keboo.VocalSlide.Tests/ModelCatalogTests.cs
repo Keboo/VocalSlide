@@ -29,4 +29,23 @@ public class ModelCatalogTests
 
         await Assert.That(path).IsEqualTo(Path.Combine(ModelCatalog.StorageDirectory, "ggml-tiny.en.bin"));
     }
+
+    [Test]
+    public async Task WhisperModels_ExposeCpuAccuracyTiers()
+    {
+        IReadOnlyList<string> modelIds = ModelCatalog.WhisperModels.Select(model => model.Id).ToArray();
+
+        await Assert.That(modelIds).IsEquivalentTo(
+            ["whisper-tiny-en", "whisper-base-en", "whisper-small-en", "whisper-medium-en"]);
+        await Assert.That(ModelCatalog.DefaultWhisper.IsCpuRealtimeFriendly).IsTrue();
+        await Assert.That(ModelCatalog.MaxAccuracyWhisper.IsCpuRealtimeFriendly).IsFalse();
+    }
+
+    [Test]
+    public async Task DefaultTranscriptionProfile_MatchesPreviousLatencyDefaults()
+    {
+        await Assert.That(ModelCatalog.DefaultTranscriptionProfile.Id).IsEqualTo("balanced");
+        await Assert.That(ModelCatalog.DefaultTranscriptionProfile.BufferMilliseconds).IsEqualTo(250);
+        await Assert.That(ModelCatalog.DefaultTranscriptionProfile.ChunkMilliseconds).IsEqualTo(2000);
+    }
 }

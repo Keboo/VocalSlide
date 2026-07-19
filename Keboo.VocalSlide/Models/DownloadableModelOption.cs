@@ -5,4 +5,5 @@ public sealed record DownloadableModelOption(
     string DisplayName,
     string FileName,
     string DownloadUrl,
-    string Description);
+    string Description,
+    bool IsCpuRealtimeFriendly = true);

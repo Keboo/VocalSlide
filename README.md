@@ -22,12 +22,17 @@ Switch when I start talking about the failed rollout, the updated timeline, and 
 ## Using the app
 
 1. Open the PowerPoint deck and start the slide show.
-2. Use **Download Whisper** to fetch the recommended `ggml-tiny.en.bin` transcription model, or select the larger base model if you want a little more accuracy.
+2. Use **Download Whisper** to fetch the recommended `ggml-tiny.en.bin` transcription model for low latency, or choose `ggml-base.en.bin` / `ggml-small.en.bin` for higher accuracy.
 3. Use **Download GGUF** to fetch the default `Qwen2.5-0.5B-Instruct` GGUF file, or replace the URL with any other direct GGUF download URL you want the app to store locally.
 4. Click **Refresh PowerPoint** to load slides and parsed prompts.
 5. Click **Start Listening** to begin microphone capture and local evaluation.
 6. Use **Previous Slide**, **Next Slide**, or select a row in the slide grid and click **Go To Selected Slide** whenever you want to reposition manually.
 7. Leave **Auto-advance enabled** checked if you want the app to move slides automatically, or uncheck it to keep transcription running without changing slides.
+
+Use the **Transcription profile** setting to tune behavior:
+- **Low latency** prioritizes faster transcript updates.
+- **Balanced (Recommended)** keeps the previous default behavior.
+- **Higher accuracy** uses longer chunks and may lag on CPU-only laptops.
 
 The transcript window is now **slide-scoped**: whenever the active slide changes, earlier transcript is cleared so the next evaluation only considers speech captured after that slide change.
 

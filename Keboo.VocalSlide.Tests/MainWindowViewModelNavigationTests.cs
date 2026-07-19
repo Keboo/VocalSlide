@@ -53,6 +53,16 @@ public class MainWindowViewModelNavigationTests
         await Assert.That(viewModel.GoToSelectedSlideCommand.CanExecute(null)).IsFalse();
     }
 
+    [Test]
+    public async Task Constructor_SetsDefaultTranscriptionProfile()
+    {
+        MainWindowViewModel viewModel = CreateViewModel();
+
+        await Assert.That(viewModel.SelectedTranscriptionProfile).IsNotNull();
+        await Assert.That(viewModel.SelectedTranscriptionProfile!.Id).IsEqualTo(ModelCatalog.DefaultTranscriptionProfile.Id);
+        await Assert.That(viewModel.TranscriptionProfiles.Count).IsGreaterThan(1);
+    }
+
     private static MainWindowViewModel CreateViewModel()
     {
         Mock<IPowerPointSessionService> powerPointSessionService = new();
